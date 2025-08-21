@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroAI - Smart Farming Assistant</title>
+    <meta name="description" content="AI-powered platform for farmers with disease detection, voice assistance, weather advisory, and market linkage">
+    <meta name="theme-color" content="#4caf50">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjNGNhZjUwIiByeD0iMjQiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAyTDE3LjA5IDguMjZMMjQgOUwxOCAxNUwyMC4xOCAyMkwxMiAxOEwzLjgyIDIyTDYgMTVMMCA5TDYuOTEgOC4yNloiLz4KPHN2Zz4KPHN2Zz4=">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-seedling"></i>
+                    <h1>AgroAI</h1>
+                </div>
+                <nav class="nav-menu">
+                    <button class="nav-btn active" data-section="home">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </button>
+                    <button class="nav-btn" data-section="disease-detection">
+                        <i class="fas fa-camera"></i>
+                        <span>Disease Detection</span>
+                    </button>
+                    <button class="nav-btn" data-section="voice-assistant">
+                        <i class="fas fa-microphone"></i>
+                        <span>Voice Assistant</span>
+                    </button>
+                    <button class="nav-btn" data-section="weather">
+                        <i class="fas fa-cloud-sun"></i>
+                        <span>Weather</span>
+                    </button>
+                    <button class="nav-btn" data-section="market">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Market</span>
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Home Section -->
+            <section id="home" class="section active">
+                <div class="hero-section">
+                    <h2>Welcome to AgroAI</h2>
+                    <p>Your intelligent farming companion for better crops, better yields, and better income</p>
+                    <div class="feature-grid">
+                        <div class="feature-card" data-navigate="disease-detection">
+                            <i class="fas fa-leaf"></i>
+                            <h3>Crop Disease Detection</h3>
+                            <p>Upload plant photos for instant AI-powered disease diagnosis</p>
+                        </div>
+                        <div class="feature-card" data-navigate="voice-assistant">
+                            <i class="fas fa-comments"></i>
+                            <h3>Voice Assistant</h3>
+                            <p>Ask questions in your local language and get expert advice</p>
+                        </div>
+                        <div class="feature-card" data-navigate="weather">
+                            <i class="fas fa-thermometer-half"></i>
+                            <h3>Weather Advisory</h3>
+                            <p>Get weather forecasts and personalized crop recommendations</p>
+                        </div>
+                        <div class="feature-card" data-navigate="market">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>Market Linkage</h3>
+                            <p>Connect with buyers and check latest market prices</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Disease Detection Section -->
+            <section id="disease-detection" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-camera"></i> Crop Disease Detection</h2>
+                    <p>Upload a photo of your plant leaf to detect diseases and get treatment recommendations</p>
+                </div>
+                <div class="upload-container">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Upload Plant Image</h3>
+                            <p>Click here or drag and drop your plant photo</p>
+                            <input type="file" id="imageInput" accept="image/*" hidden>
+                        </div>
+                    </div>
+                    <div class="image-preview" id="imagePreview" style="display: none;">
+                        <img id="previewImg" alt="Uploaded plant image">
+                        <button class="analyze-btn" id="analyzeBtn">
+                            <i class="fas fa-search"></i> Analyze Disease
+                        </button>
+                    </div>
+                </div>
+                <div class="analysis-results" id="analysisResults" style="display: none;">
+                    <div class="result-card">
+                        <h3>Disease Analysis Results</h3>
+                        <div class="disease-info" id="diseaseInfo"></div>
+                        <div class="treatment-recommendations" id="treatmentRecommendations"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Voice Assistant Section -->
+            <section id="voice-assistant" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-microphone"></i> Voice Assistant</h2>
+                    <p>Ask questions in your local language and get expert farming advice</p>
+                </div>
+                <div class="language-selector">
+                    <select id="languageSelect">
+                        <option value="en">English</option>
+                        <option value="hi">हिंदी (Hindi)</option>
+                        <option value="mr">मराठी (Marathi)</option>
+                        <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                        <option value="ta">தமிழ் (Tamil)</option>
+                        <option value="te">తెలుగు (Telugu)</option>
+                    </select>
+                </div>
+                <div class="voice-interface">
+                    <div class="voice-controls">
+                        <button class="voice-btn" id="voiceBtn">
+                            <i class="fas fa-microphone"></i>
+                            <span>Tap to speak</span>
+                        </button>
+                        <div class="voice-status" id="voiceStatus">Ready to listen...</div>
+                    </div>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message bot-message">
+                                <i class="fas fa-robot"></i>
+                                <p>Hello! I'm your farming assistant. You can ask me about crops, weather, soil, or any farming questions in your preferred language.</p>
+                            </div>
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" id="textInput" placeholder="Type your question here...">
+                            <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Weather Section -->
+            <section id="weather" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-cloud-sun"></i> Weather & Crop Advisory</h2>
+                    <p>Get weather forecasts and personalized recommendations for your crops</p>
+                </div>
+                <div class="location-input">
+                    <div class="input-group">
+                        <input type="text" id="locationInput" placeholder="Enter your location">
+                        <button id="getWeatherBtn">Get Weather</button>
+                        <button id="useLocationBtn"><i class="fas fa-map-marker-alt"></i></button>
+                    </div>
+                </div>
+                <div class="weather-container" id="weatherContainer">
+                    <div class="current-weather" id="currentWeather"></div>
+                    <div class="weather-forecast" id="weatherForecast"></div>
+                    <div class="crop-advisory" id="cropAdvisory"></div>
+                </div>
+            </section>
+
+            <!-- Market Section -->
+            <section id="market" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Market Linkage & Prices</h2>
+                    <p>Connect with buyers and check latest market prices in your area</p>
+                </div>
+                <div class="market-tabs">
+                    <button class="tab-btn active" data-tab="prices">Market Prices</button>
+                    <button class="tab-btn" data-tab="buyers">Find Buyers</button>
+                    <button class="tab-btn" data-tab="sell">Sell Crops</button>
+                </div>
+                <div class="market-content">
+                    <div id="prices" class="tab-content active">
+                        <div class="price-filters">
+                            <select id="cropSelect">
+                                <option value="">Select Crop</option>
+                                <option value="rice">Rice</option>
+                                <option value="wheat">Wheat</option>
+                                <option value="corn">Corn</option>
+                                <option value="tomato">Tomato</option>
+                                <option value="potato">Potato</option>
+                                <option value="onion">Onion</option>
+                            </select>
+                            <select id="mandiSelect">
+                                <option value="">Select Mandi</option>
+                                <option value="local">Local Market</option>
+                                <option value="district">District Market</option>
+                                <option value="state">State Market</option>
+                            </select>
+                            <button id="getPricesBtn">Get Prices</button>
+                        </div>
+                        <div class="price-list" id="priceList"></div>
+                    </div>
+                    <div id="buyers" class="tab-content">
+                        <div class="buyer-search">
+                            <input type="text" placeholder="Search buyers near you...">
+                            <button>Search</button>
+                        </div>
+                        <div class="buyer-list" id="buyerList"></div>
+                    </div>
+                    <div id="sell" class="tab-content">
+                        <form class="sell-form">
+                            <h3>List Your Crops for Sale</h3>
+                            <div class="form-group">
+                                <label for="cropType">Crop Type</label>
+                                <select id="cropType" required>
+                                    <option value="">Select Crop</option>
+                                    <option value="rice">Rice</option>
+                                    <option value="wheat">Wheat</option>
+                                    <option value="corn">Corn</option>
+                                    <option value="vegetables">Vegetables</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="quantity">Quantity (kg)</label>
+                                <input type="number" id="quantity" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="price">Expected Price (₹/kg)</label>
+                                <input type="number" id="price" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="contact">Contact Number</label>
+                                <input type="tel" id="contact" required>
+                            </div>
+                            <button type="submit" class="submit-btn">List for Sale</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="models/plant-disease-model.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Register service worker for PWA capabilities
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Install prompt for PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show install banner
+            const installBanner = document.createElement('div');
+            installBanner.innerHTML = `
+                <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: #4caf50; color: white; padding: 1rem; border-radius: 8px; z-index: 1000; display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-mobile-alt"></i> Install AgroAI app for better experience</span>
+                    <button id="installBtn" style="background: white; color: #4caf50; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Install</button>
+                    <button id="dismissBtn" style="background: none; color: white; border: none; padding: 0.5rem; cursor: pointer;"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+
+            document.getElementById('installBtn').addEventListener('click', () => {
+                installBanner.remove();
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the A2HS prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+
+            document.getElementById('dismissBtn').addEventListener('click', () => {
+                installBanner.remove();
+            });
+        });
+    </script>
+</body>
+</html>

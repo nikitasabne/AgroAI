@@ -1,18 +1,35 @@
 {
-  "name": "code",
+  "name": "agroai-platform",
   "version": "1.0.0",
-  "description": "A basic web application",
-  "main": "index.js",
+  "description": "AI-based multi-functional platform for farmers with crop disease detection, voice assistance, weather advisory, and market linkage",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "echo 'Build complete'"
+    "build": "echo 'Build complete'",
+    "test": "echo 'Tests not yet implemented'"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "axios": "^1.11.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1"
   },
-  "devDependencies": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "keywords": [
+    "agriculture",
+    "ai",
+    "farming",
+    "crop-disease-detection",
+    "voice-assistant",
+    "weather",
+    "market-linkage",
+    "pwa"
+  ],
+  "author": "AgroAI Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }
