@@ -2,11 +2,11 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { DatabaseManager } = require('./database/schema');
+const APIManager = require('./services/api-manager');
 
 const app = express();
 const PORT = process.env.PORT || 4200;
-const db = new DatabaseManager();
+const apiManager = new APIManager();
 
 // Middleware
 app.use(cors());
@@ -101,53 +101,90 @@ app.get('/api/disease-history/:userId', async (req, res) => {
     }
 });
 
-// Weather API
+// Weather API - Real OpenWeatherMap Integration
 app.get('/api/weather/:location', async (req, res) => {
     try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const weatherData = await db.getWeatherData(req.params.location);
-        res.json({ success: true, weather: weatherData });
+        console.log(`Fetching weather for: ${req.params.location}`);
+        const weatherData = await apiManager.getCurrentWeather(req.params.location);
+
+        // Generate crop advisory based on weather
+        const cropAdvisory = await apiManager.getCropAdvisory(req.params.location, weatherData);
+
+        res.json({
+            success: true,
+            weather: weatherData,
+            advisory: cropAdvisory
+        });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Weather API Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch weather data. Please check your location or try again later.'
+        });
     }
 });
 
-// Market Data
+// Market Data - Real Agricultural Market APIs
 app.get('/api/market-prices', async (req, res) => {
     try {
-        const { crop, market } = req.query;
-        const prices = await db.getMarketPrices(crop, market);
+        const { crop, state, district } = req.query;
+        console.log(`Fetching market prices for: ${crop} in ${state}, ${district}`);
+
+        const prices = await apiManager.getMarketPrices(crop, state, district);
         res.json({ success: true, prices });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Market API Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch market prices. Please try again later.'
+        });
     }
 });
 
+// Buyer-Seller Marketplace - Real Integration
 app.get('/api/buyers', async (req, res) => {
     try {
         const { cropType, location } = req.query;
-        const buyers = await db.getBuyers(cropType, location);
+        console.log(`Finding buyers for: ${cropType} near ${location}`);
+
+        const buyers = await apiManager.getBuyers(cropType, location);
         res.json({ success: true, buyers });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Buyer API Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch buyer information. Please try again later.'
+        });
     }
 });
 
 app.post('/api/crop-listings', async (req, res) => {
     try {
-        const listing = await db.createCropListing(req.body);
+        console.log('Creating new crop listing:', req.body);
+
+        const listing = await apiManager.createCropListing(req.body);
         res.json({ success: true, listing });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Listing Creation Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create crop listing. Please try again later.'
+        });
     }
 });
 
 app.get('/api/crop-listings', async (req, res) => {
     try {
-        const listings = await db.getCropListings(req.query);
+        console.log('Fetching crop listings with filters:', req.query);
+
+        const listings = await apiManager.getCropListings(req.query);
         res.json({ success: true, listings });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Crop Listings Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch crop listings. Please try again later.'
+        });
     }
 });
 
@@ -192,24 +229,64 @@ app.get('/api/chat-history/:userId', async (req, res) => {
     }
 });
 
-// Crop Information
-app.get('/api/crops', async (req, res) => {
+// Crop Recommendations - Season and Weather Based
+app.get('/api/crop-recommendations/:location', async (req, res) => {
     try {
-        const crops = await db.getAllCrops();
-        res.json({ success: true, crops });
+        const location = req.params.location;
+        console.log(`Getting crop recommendations for: ${location}`);
+
+        // Get current weather data
+        const weatherData = await apiManager.getCurrentWeather(location);
+
+        // Get crop advisory based on weather and season
+        const cropAdvisory = await apiManager.getCropAdvisory(location, weatherData);
+
+        res.json({
+            success: true,
+            location: location,
+            currentSeason: cropAdvisory.season,
+            climateZone: cropAdvisory.climateZone,
+            recommendedCrops: cropAdvisory.recommendedCrops,
+            advisory: {
+                irrigation: cropAdvisory.irrigation,
+                planting: cropAdvisory.planting,
+                protection: cropAdvisory.protection,
+                harvest: cropAdvisory.harvest
+            },
+            weatherBased: true
+        });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Crop Recommendation Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get crop recommendations. Please try again later.'
+        });
     }
 });
 
-app.get('/api/crops/:name', async (req, res) => {
+// Get current season information
+app.get('/api/season-info', async (req, res) => {
     try {
-        const crop = await db.getCropInfo(req.params.name);
-        if (crop) {
-            res.json({ success: true, crop });
+        const currentMonth = new Date().getMonth() + 1;
+        let season, description;
+
+        if (currentMonth >= 6 && currentMonth <= 9) {
+            season = 'Kharif (Monsoon Season)';
+            description = 'Time for monsoon crops like rice, cotton, sugarcane, and maize';
+        } else if (currentMonth >= 10 && currentMonth <= 3) {
+            season = 'Rabi (Winter Season)';
+            description = 'Ideal for winter crops like wheat, barley, peas, and mustard';
         } else {
-            res.status(404).json({ success: false, error: 'Crop not found' });
+            season = 'Zaid (Summer Season)';
+            description = 'Summer season suitable for fodder crops and heat-tolerant vegetables';
         }
+
+        res.json({
+            success: true,
+            currentSeason: season,
+            description: description,
+            month: currentMonth
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -233,8 +310,8 @@ async function generateAIResponse(message, language) {
         },
         hi: {
             weather: 'मौजूदा मौसम के आधार पर, 28°C के आसपास तापमान के साथ आंशिक रूप से बादल छाए रहेंगे। अधिकांश फसलों के लिए अच्छी स्थिति।',
-            soil: 'आपकी मिट्टी के प्रकार के लिए, मैं मौसम के आधार पर चावल, गेहूं या ���ब्जियों की सिफारिश करता हूं।',
-            crop: 'इस मौसम की लोकप्रिय फसलों में टमाटर, मिर्च और पत्तेदार सब्जियां शामिल हैं।',
+            soil: 'आपकी मिट्टी के प्रकार के लिए, मैं मौसम के आधार पर चावल, गेहूं या सब्जियों की सिफारिश करता हूं।',
+            crop: 'इस मौसम की लोकप्रिय फसलों में टमाटर, मिर्च और ���त्तेदार सब्जियां शामिल हैं।',
             default: 'मैं समझता हूं कि आप खेती की सलाह चाहते हैं। कृपया फसल, मौसम, मिट्टी या रोग के बारे में और स्पष्ट रूप से बताएं।'
         }
     };
