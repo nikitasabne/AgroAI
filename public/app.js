@@ -518,16 +518,27 @@ class AgroAI {
     }
 
     async getWeatherData(location, weatherContainer) {
-        weatherContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i><p>Fetching weather data...</p></div>';
-        
+        weatherContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Fetching real weather data...</p></div>';
+
         try {
-            await this.delay(1500);
-            
-            // Mock weather data (replace with actual weather API)
-            const weatherData = this.getMockWeatherData();
-            this.displayWeatherData(weatherData, weatherContainer);
+            // Call real weather API
+            const response = await fetch(`/api/weather/${encodeURIComponent(location)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.displayWeatherData(data.weather, data.advisory, weatherContainer);
+            } else {
+                throw new Error(data.error || 'Failed to fetch weather data');
+            }
         } catch (error) {
-            weatherContainer.innerHTML = '<div class="status-error">Error fetching weather data. Please try again.</div>';
+            console.error('Weather fetch error:', error);
+            weatherContainer.innerHTML = `
+                <div class="status-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error fetching weather data: ${error.message}</p>
+                    <p>Please check your location spelling or try again later.</p>
+                </div>
+            `;
         }
     }
 
@@ -557,12 +568,21 @@ class AgroAI {
         };
     }
 
-    displayWeatherData(data, container) {
-        const { current, forecast, advisory } = data;
-        
+    displayWeatherData(weatherData, advisory, container) {
+        const { current, forecast, location } = weatherData;
+
         container.innerHTML = `
+            <div class="weather-location">
+                <h3><i class="fas fa-map-marker-alt"></i> ${location}</h3>
+                <p class="weather-updated">Updated: ${new Date().toLocaleString()}</p>
+            </div>
+
             <div class="current-weather">
                 <h3><i class="${current.icon}"></i> Current Weather</h3>
+                <div class="current-condition">
+                    <span class="current-temp">${current.temperature}°C</span>
+                    <span class="current-desc">${current.condition}</span>
+                </div>
                 <div class="weather-stats">
                     <div class="stat">
                         <span class="stat-value">${current.temperature}°C</span>
@@ -582,7 +602,7 @@ class AgroAI {
                     </div>
                 </div>
             </div>
-            
+
             <div class="weather-forecast">
                 <h3><i class="fas fa-calendar-alt"></i> 5-Day Forecast</h3>
                 <div class="forecast-grid">
@@ -590,15 +610,30 @@ class AgroAI {
                         <div class="forecast-item">
                             <div class="forecast-day">${day.day}</div>
                             <i class="${day.icon}"></i>
-                            <div class="forecast-temp">${day.temp}</div>
+                            <div class="forecast-temp">${day.temp}°C</div>
                             <div class="forecast-condition">${day.condition}</div>
+                            ${day.rainfall > 0 ? `<div class="forecast-rain">${day.rainfall}mm</div>` : ''}
                         </div>
                     `).join('')}
                 </div>
             </div>
-            
+
             <div class="crop-advisory">
-                <h3><i class="fas fa-lightbulb"></i> Crop Advisory</h3>
+                <h3><i class="fas fa-lightbulb"></i> Seasonal Crop Recommendations</h3>
+                <div class="season-info">
+                    <h4><i class="fas fa-calendar"></i> Current Season: ${advisory.season.toUpperCase()}</h4>
+                    <p><strong>Climate Zone:</strong> ${advisory.climateZone}</p>
+                </div>
+
+                <div class="recommended-crops">
+                    <h4><i class="fas fa-seedling"></i> Recommended Crops for This Season</h4>
+                    <div class="crops-grid">
+                        ${advisory.recommendedCrops.map(crop => `
+                            <div class="crop-tag">${crop}</div>
+                        `).join('')}
+                    </div>
+                </div>
+
                 <div class="advisory-grid">
                     <div class="advisory-item">
                         <h4><i class="fas fa-tint"></i> Irrigation</h4>
