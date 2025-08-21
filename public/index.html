@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgroAI - Smart Farming Assistant</title>
+    <meta name="description" content="AI-powered platform for farmers with disease detection, voice assistance, weather advisory, and market linkage">
+    <meta name="theme-color" content="#4caf50">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjNGNhZjUwIiByeD0iMjQiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAyTDE3LjA5IDguMjZMMjQgOUwxOCAxNUwyMC4xOCAyMkwxMiAxOEwzLjgyIDIyTDYgMTVMMCA5TDYuOTEgOC4yNloiLz4KPHN2Zz4KPHN2Zz4=">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
 </head>
@@ -237,5 +241,52 @@
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Register service worker for PWA capabilities
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Install prompt for PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show install banner
+            const installBanner = document.createElement('div');
+            installBanner.innerHTML = `
+                <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: #4caf50; color: white; padding: 1rem; border-radius: 8px; z-index: 1000; display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-mobile-alt"></i> Install AgroAI app for better experience</span>
+                    <button id="installBtn" style="background: white; color: #4caf50; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Install</button>
+                    <button id="dismissBtn" style="background: none; color: white; border: none; padding: 0.5rem; cursor: pointer;"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+
+            document.getElementById('installBtn').addEventListener('click', () => {
+                installBanner.remove();
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the A2HS prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+
+            document.getElementById('dismissBtn').addEventListener('click', () => {
+                installBanner.remove();
+            });
+        });
+    </script>
 </body>
 </html>
