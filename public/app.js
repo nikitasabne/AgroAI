@@ -5,6 +5,8 @@ class AgroAI {
         this.recognition = null;
         this.isListening = false;
         this.currentLanguage = 'en';
+        this.diseaseModel = null;
+        this.modelLoading = false;
         this.init();
     }
 
@@ -15,6 +17,58 @@ class AgroAI {
         this.setupWeatherSystem();
         this.setupMarketSystem();
         this.setupSpeechRecognition();
+        this.initializeDiseaseModel();
+    }
+
+    async initializeDiseaseModel() {
+        try {
+            this.diseaseModel = new PlantDiseaseModel();
+            this.modelLoading = true;
+            this.updateModelStatus('Loading AI model...', 'loading');
+
+            const loaded = await this.diseaseModel.loadModel();
+            this.modelLoading = false;
+
+            if (loaded || this.diseaseModel.isModelReady()) {
+                this.updateModelStatus('AI model ready for disease detection', 'success');
+                console.log('Disease detection model initialized:', this.diseaseModel.getModelInfo());
+            } else {
+                this.updateModelStatus('Using demo mode - AI model not available', 'info');
+            }
+        } catch (error) {
+            console.error('Failed to initialize disease model:', error);
+            this.modelLoading = false;
+            this.updateModelStatus('Model loading failed - using demo mode', 'error');
+        }
+    }
+
+    updateModelStatus(message, type) {
+        // Add a status indicator for the AI model
+        const existingStatus = document.getElementById('modelStatus');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'modelStatus';
+        statusDiv.className = `model-status ${type}`;
+        statusDiv.innerHTML = `
+            <i class="fas fa-${type === 'loading' ? 'spinner fa-spin' : type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        `;
+
+        const diseaseSection = document.getElementById('disease-detection');
+        const sectionHeader = diseaseSection.querySelector('.section-header');
+        sectionHeader.appendChild(statusDiv);
+
+        // Auto-hide non-loading status after 5 seconds
+        if (type !== 'loading') {
+            setTimeout(() => {
+                if (statusDiv.parentNode) {
+                    statusDiv.remove();
+                }
+            }, 5000);
+        }
     }
 
     // Navigation System
