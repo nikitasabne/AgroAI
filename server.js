@@ -7,54 +7,64 @@ const PORT = process.env.PORT || 4200;
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Basic route
+// Serve the main application
 app.get('/', (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Application</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    background-color: #f5f5f5;
-                }
-                .container {
-                    background: white;
-                    padding: 40px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                    text-align: center;
-                }
-                h1 {
-                    color: #333;
-                    margin-bottom: 20px;
-                }
-                p {
-                    color: #666;
-                    line-height: 1.6;
-                }
-                .status {
-                    color: #28a745;
-                    font-weight: bold;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Application Running Successfully!</h1>
-                <p class="status">✅ Server is operational</p>
-                <p>Your application is now running on port ${PORT}</p>
-                <p>The setup has been completed and the server is ready to handle requests.</p>
-            </div>
-        </body>
-        </html>
-    `);
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API endpoints for future integration
+app.use(express.json());
+
+// Mock API endpoints
+app.post('/api/analyze-disease', async (req, res) => {
+    // Mock disease analysis endpoint
+    setTimeout(() => {
+        res.json({
+            disease: 'Leaf Blight',
+            confidence: 89,
+            severity: 'Moderate',
+            treatments: ['Apply fungicide', 'Remove affected leaves', 'Improve ventilation']
+        });
+    }, 2000);
+});
+
+app.get('/api/weather/:location', async (req, res) => {
+    // Mock weather API endpoint
+    setTimeout(() => {
+        res.json({
+            temperature: 28,
+            humidity: 65,
+            condition: 'Partly Cloudy',
+            forecast: [
+                { day: 'Today', temp: 28, condition: 'Partly Cloudy' },
+                { day: 'Tomorrow', temp: 30, condition: 'Sunny' }
+            ]
+        });
+    }, 1000);
+});
+
+app.get('/api/market-prices/:crop', async (req, res) => {
+    // Mock market prices endpoint
+    setTimeout(() => {
+        res.json({
+            crop: req.params.crop,
+            prices: [
+                { variety: 'Grade A', price: 25, market: 'Local Market' },
+                { variety: 'Grade B', price: 22, market: 'Local Market' }
+            ]
+        });
+    }, 1000);
+});
+
+app.post('/api/chat', async (req, res) => {
+    // Mock chat API endpoint
+    const { message, language } = req.body;
+    setTimeout(() => {
+        res.json({
+            response: 'This is a mock response to: ' + message,
+            language: language || 'en'
+        });
+    }, 1000);
 });
 
 app.listen(PORT, () => {
