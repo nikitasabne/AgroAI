@@ -697,24 +697,63 @@ class AgroAI {
         const priceList = document.getElementById('priceList');
         const cropSelect = document.getElementById('cropSelect');
         const mandiSelect = document.getElementById('mandiSelect');
-        
+
         const crop = cropSelect.value;
         const mandi = mandiSelect.value;
-        
-        if (!crop || !mandi) {
-            priceList.innerHTML = '<div class="status-error">Please select both crop and mandi</div>';
+
+        if (!crop) {
+            priceList.innerHTML = '<div class="status-error">Please select a crop</div>';
             return;
         }
-        
-        priceList.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i><p>Fetching latest prices...</p></div>';
-        
+
+        priceList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Fetching latest market prices...</p></div>';
+
         try {
-            await this.delay(1000);
-            const prices = this.getMockPrices(crop, mandi);
-            this.displayPrices(prices, priceList);
+            // Get user location for regional pricing
+            const location = await this.getUserLocation();
+            const state = location ? location.state : '';
+            const district = location ? location.district : '';
+
+            const response = await fetch(`/api/market-prices?crop=${encodeURIComponent(crop)}&state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`);
+            const data = await response.json();
+
+            if (data.success && data.prices) {
+                this.displayPrices(data.prices, priceList);
+            } else {
+                throw new Error(data.error || 'No price data available');
+            }
         } catch (error) {
-            priceList.innerHTML = '<div class="status-error">Error fetching prices. Please try again.</div>';
+            console.error('Market price fetch error:', error);
+            priceList.innerHTML = `
+                <div class="status-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error fetching market prices: ${error.message}</p>
+                    <p>Please try again later or check your internet connection.</p>
+                </div>
+            `;
         }
+    }
+
+    async getUserLocation() {
+        try {
+            // Try to get location from browser
+            if ('geolocation' in navigator) {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                });
+
+                // Reverse geocoding would be done here in production
+                return {
+                    state: 'Your State',
+                    district: 'Your District',
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+            }
+        } catch (error) {
+            console.log('Location access denied or unavailable');
+        }
+        return null;
     }
 
     getMockPrices(crop, mandi) {
@@ -769,20 +808,57 @@ class AgroAI {
     }
 
     async loadMarketData() {
-        // Load buyers
+        // Load buyers from real API
         const buyerList = document.getElementById('buyerList');
-        const buyers = this.getMockBuyers();
-        
-        buyerList.innerHTML = buyers.map(buyer => `
+        buyerList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Loading buyers...</p></div>';
+
+        try {
+            const location = await this.getUserLocation();
+            const locationStr = location ? `${location.district}, ${location.state}` : '';
+
+            const response = await fetch(`/api/buyers?location=${encodeURIComponent(locationStr)}`);
+            const data = await response.json();
+
+            if (data.success && data.buyers) {
+                this.displayBuyers(data.buyers, buyerList);
+            } else {
+                throw new Error(data.error || 'No buyers found');
+            }
+        } catch (error) {
+            console.error('Buyer loading error:', error);
+            buyerList.innerHTML = `
+                <div class="status-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading buyers: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    displayBuyers(buyers, container) {
+        container.innerHTML = buyers.map(buyer => `
             <div class="buyer-item">
                 <div class="buyer-info">
                     <h4>${buyer.name}</h4>
-                    <p><i class="fas fa-map-marker-alt"></i> ${buyer.location}</p>
-                    <p><i class="fas fa-shopping-cart"></i> Looking for: ${buyer.crops.join(', ')}</p>
+                    <div class="buyer-details">
+                        <p><i class="fas fa-map-marker-alt"></i> ${buyer.location}</p>
+                        <p><i class="fas fa-shopping-cart"></i> Looking for: ${buyer.cropsInterested.join(', ')}</p>
+                        <p><i class="fas fa-credit-card"></i> Payment: ${buyer.paymentTerms}</p>
+                        <p><i class="fas fa-truck"></i> Capacity: ${buyer.capacity} quintals</p>
+                        ${buyer.distance ? `<p><i class="fas fa-route"></i> Distance: ${buyer.distance}</p>` : ''}
+                    </div>
+                    <div class="buyer-rating">
+                        <span class="rating-stars">${'★'.repeat(Math.floor(buyer.rating))}${'☆'.repeat(5 - Math.floor(buyer.rating))}</span>
+                        <span class="rating-value">${buyer.rating}</span>
+                        ${buyer.verified ? '<span class="verified"><i class="fas fa-check-circle"></i> Verified</span>' : ''}
+                    </div>
                 </div>
                 <div class="buyer-contact">
-                    <button class="contact-btn" onclick="alert('Contact: ${buyer.phone}')">
-                        <i class="fas fa-phone"></i> Contact
+                    <button class="contact-btn" onclick="window.open('tel:${buyer.contact}')">
+                        <i class="fas fa-phone"></i> Call
+                    </button>
+                    <button class="whatsapp-btn" onclick="window.open('https://wa.me/${buyer.contact.replace(/[^0-9]/g, '')}')">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
                     </button>
                 </div>
             </div>
@@ -814,30 +890,72 @@ class AgroAI {
 
     async submitCropListing(form) {
         const formData = new FormData(form);
+        const location = await this.getUserLocation();
+
         const listing = {
             cropType: formData.get('cropType') || document.getElementById('cropType').value,
-            quantity: formData.get('quantity') || document.getElementById('quantity').value,
-            price: formData.get('price') || document.getElementById('price').value,
-            contact: formData.get('contact') || document.getElementById('contact').value
+            quantity: parseInt(formData.get('quantity') || document.getElementById('quantity').value),
+            pricePerUnit: parseFloat(formData.get('price') || document.getElementById('price').value),
+            contact: formData.get('contact') || document.getElementById('contact').value,
+            location: location ? `${location.district}, ${location.state}` : 'Location not specified',
+            variety: formData.get('variety') || 'Standard',
+            quality: formData.get('quality') || 'Grade A',
+            harvestDate: new Date().toISOString().split('T')[0],
+            unit: 'quintals'
         };
-        
+
+        // Validate required fields
+        if (!listing.cropType || !listing.quantity || !listing.pricePerUnit || !listing.contact) {
+            this.showStatusMessage('error', 'Please fill in all required fields.');
+            return;
+        }
+
         // Show loading
         const submitBtn = form.querySelector('.submit-btn');
         const originalText = submitBtn.textContent;
         submitBtn.textContent = 'Submitting...';
         submitBtn.disabled = true;
-        
+
         try {
-            await this.delay(1500);
-            
-            // Mock submission
-            this.showStatusMessage('success', 'Your crop listing has been submitted successfully!');
-            form.reset();
+            const response = await fetch('/api/crop-listings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(listing)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showStatusMessage('success', `Your ${listing.cropType} listing has been submitted successfully! Listing ID: ${data.listing.id}`);
+                form.reset();
+
+                // Load updated listings
+                this.loadCropListings();
+            } else {
+                throw new Error(data.error || 'Failed to submit listing');
+            }
         } catch (error) {
-            this.showStatusMessage('error', 'Error submitting listing. Please try again.');
+            console.error('Listing submission error:', error);
+            this.showStatusMessage('error', `Error submitting listing: ${error.message}`);
         } finally {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
+        }
+    }
+
+    async loadCropListings() {
+        try {
+            const response = await fetch('/api/crop-listings');
+            const data = await response.json();
+
+            if (data.success && data.listings) {
+                // Update any crop listing displays
+                console.log('Crop listings updated:', data.listings.length);
+            }
+        } catch (error) {
+            console.error('Error loading crop listings:', error);
         }
     }
 
