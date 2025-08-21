@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -309,9 +310,9 @@ async function generateAIResponse(message, language) {
             default: 'I understand you want farming advice. Could you be more specific about crops, weather, soil, diseases, or market prices?'
         },
         hi: {
-            weather: 'मौजूदा मौसम के आधार पर, 28°C के आसपास तापमान के साथ आंशिक रूप से बादल छाए रहेंगे। अधिकांश फसलों के लिए अच्छी स्थिति।',
+            weather: 'मौजूदा मौसम के आधार पर, 28°C के आसपास तापमान के साथ आंशिक रूप से बादल छाए रहेंगे। अधिकांश फसलों के लिए अच्छ��� स्थिति।',
             soil: 'आपकी मिट्टी के प्रकार के लिए, मैं मौसम के आधार पर चावल, गेहूं या सब्जियों की सिफारिश करता हूं।',
-            crop: 'इस मौसम की लोकप्रिय फसलों में टमाटर, मिर्च और ���त्तेदार सब्जियां शामिल हैं।',
+            crop: 'इस मौसम की लोकप्रिय फसलों में टमाटर, मिर्च और पत्तेदार सब्जियां शामिल हैं।',
             default: 'मैं समझता हूं कि आप खेती की सलाह चाहते हैं। कृपया फसल, मौसम, मिट्टी या रोग के बारे में और स्पष्ट रूप से बताएं।'
         }
     };

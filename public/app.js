@@ -542,31 +542,6 @@ class AgroAI {
         }
     }
 
-    getMockWeatherData() {
-        return {
-            current: {
-                temperature: 28,
-                humidity: 65,
-                rainfall: 0,
-                windSpeed: 12,
-                condition: 'Partly Cloudy',
-                icon: 'fas fa-cloud-sun'
-            },
-            forecast: [
-                { day: 'Today', temp: '28°C', condition: 'Partly Cloudy', icon: 'fas fa-cloud-sun' },
-                { day: 'Tomorrow', temp: '30°C', condition: 'Sunny', icon: 'fas fa-sun' },
-                { day: 'Day 3', temp: '26°C', condition: 'Light Rain', icon: 'fas fa-cloud-rain' },
-                { day: 'Day 4', temp: '29°C', condition: 'Cloudy', icon: 'fas fa-cloud' },
-                { day: 'Day 5', temp: '31°C', condition: 'Sunny', icon: 'fas fa-sun' }
-            ],
-            advisory: {
-                irrigation: 'Moderate watering recommended. Soil moisture appears adequate.',
-                planting: 'Good conditions for planting tomatoes and peppers.',
-                protection: 'Light rain expected day 3. Protect sensitive crops.',
-                harvest: 'Excellent weather for harvesting mature crops.'
-            }
-        };
-    }
 
     displayWeatherData(weatherData, advisory, container) {
         const { current, forecast, location } = weatherData;
@@ -756,38 +731,6 @@ class AgroAI {
         return null;
     }
 
-    getMockPrices(crop, mandi) {
-        const basePrices = {
-            rice: { min: 20, max: 25 },
-            wheat: { min: 18, max: 22 },
-            corn: { min: 15, max: 18 },
-            tomato: { min: 25, max: 35 },
-            potato: { min: 12, max: 18 },
-            onion: { min: 20, max: 30 }
-        };
-        
-        const price = basePrices[crop] || { min: 15, max: 25 };
-        const currentPrice = Math.floor(Math.random() * (price.max - price.min) + price.min);
-        const previousPrice = currentPrice + Math.floor(Math.random() * 6) - 3;
-        const change = currentPrice - previousPrice;
-        
-        return [
-            {
-                variety: `${crop.charAt(0).toUpperCase() + crop.slice(1)} - Grade A`,
-                price: currentPrice,
-                change: change,
-                unit: 'per kg',
-                market: mandi.charAt(0).toUpperCase() + mandi.slice(1) + ' Market'
-            },
-            {
-                variety: `${crop.charAt(0).toUpperCase() + crop.slice(1)} - Grade B`,
-                price: currentPrice - 2,
-                change: change - 1,
-                unit: 'per kg',
-                market: mandi.charAt(0).toUpperCase() + mandi.slice(1) + ' Market'
-            }
-        ];
-    }
 
     displayPrices(prices, container) {
         container.innerHTML = prices.map(price => `
@@ -865,28 +808,6 @@ class AgroAI {
         `).join('');
     }
 
-    getMockBuyers() {
-        return [
-            {
-                name: 'Rajesh Agricultural Supplies',
-                location: 'District Market, 5km',
-                crops: ['Rice', 'Wheat', 'Corn'],
-                phone: '+91 98765 43210'
-            },
-            {
-                name: 'Green Valley Traders',
-                location: 'State Market, 15km',
-                crops: ['Vegetables', 'Fruits'],
-                phone: '+91 98765 43211'
-            },
-            {
-                name: 'Farm Fresh Co-op',
-                location: 'Local Market, 2km',
-                crops: ['Tomato', 'Potato', 'Onion'],
-                phone: '+91 98765 43212'
-            }
-        ];
-    }
 
     async submitCropListing(form) {
         const formData = new FormData(form);
