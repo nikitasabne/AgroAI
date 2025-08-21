@@ -300,37 +300,6 @@ class AgroAI {
         }
     }
 
-    getMockDiseaseAnalysis() {
-        const diseases = [
-            {
-                disease: 'Leaf Blight',
-                confidence: 89,
-                severity: 'Moderate',
-                description: 'A fungal infection affecting the leaf tissues, causing brown spots and yellowing.',
-                treatments: [
-                    'Apply copper-based fungicide spray',
-                    'Remove affected leaves immediately',
-                    'Improve air circulation around plants',
-                    'Avoid overhead watering'
-                ],
-                prevention: 'Maintain proper spacing between plants and ensure good drainage.'
-            },
-            {
-                disease: 'Powdery Mildew',
-                confidence: 92,
-                severity: 'Mild',
-                description: 'A fungal disease characterized by white powdery spots on leaves.',
-                treatments: [
-                    'Spray with neem oil solution',
-                    'Apply baking soda spray (1 tsp per quart water)',
-                    'Increase air circulation',
-                    'Remove infected plant parts'
-                ],
-                prevention: 'Plant in sunny locations with good air flow and avoid overcrowding.'
-            }
-        ];
-        return diseases[Math.floor(Math.random() * diseases.length)];
-    }
 
     // Voice Assistant System
     setupVoiceAssistant() {
