@@ -166,31 +166,137 @@ class AgroAI {
         const treatmentRecommendations = document.getElementById('treatmentRecommendations');
 
         // Show loading
-        diseaseInfo.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i><p>Analyzing plant image...</p></div>';
+        diseaseInfo.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Analyzing plant image with AI...</p></div>';
         treatmentRecommendations.innerHTML = '';
 
         try {
-            // Simulate AI analysis (replace with actual AI service)
-            await this.delay(2000);
-            
-            const mockAnalysis = this.getMockDiseaseAnalysis();
-            
-            diseaseInfo.innerHTML = `
-                <h4><i class="fas fa-bug"></i> Disease Detected: ${mockAnalysis.disease}</h4>
-                <p><strong>Confidence:</strong> ${mockAnalysis.confidence}%</p>
-                <p><strong>Severity:</strong> ${mockAnalysis.severity}</p>
-                <p><strong>Description:</strong> ${mockAnalysis.description}</p>
-            `;
+            // Check if model is ready
+            if (!this.diseaseModel || !this.diseaseModel.isModelReady()) {
+                throw new Error('AI model not ready. Please wait for model to load.');
+            }
 
+            // Create image element for model prediction
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = imageSrc;
+            });
+
+            // Show processing status
+            diseaseInfo.innerHTML = '<div class="loading"><i class="fas fa-brain fa-spin"></i><p>AI model processing image...</p></div>';
+
+            // Get predictions from TensorFlow model
+            const predictions = await this.diseaseModel.predict(img);
+            const analysis = this.diseaseModel.formatAnalysisResult(predictions, img);
+
+            // Display results
+            this.displayDiseaseAnalysis(analysis, diseaseInfo, treatmentRecommendations);
+
+        } catch (error) {
+            console.error('Disease analysis error:', error);
+            diseaseInfo.innerHTML = `
+                <div class="status-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error analyzing image: ${error.message}</p>
+                    <p>Please try again or wait for the AI model to load.</p>
+                </div>
+            `;
+        }
+    }
+
+    displayDiseaseAnalysis(analysis, diseaseInfo, treatmentRecommendations) {
+        // Display main disease information
+        const healthyClass = analysis.isHealthy ? 'healthy' : 'diseased';
+        const severityColor = this.getSeverityColor(analysis.severity);
+
+        diseaseInfo.innerHTML = `
+            <div class="analysis-header ${healthyClass}">
+                <h4>
+                    <i class="fas fa-${analysis.isHealthy ? 'leaf' : 'bug'}"></i>
+                    ${analysis.isHealthy ? 'Plant appears healthy!' : `Disease Detected: ${analysis.disease}`}
+                </h4>
+                <div class="confidence-bar">
+                    <span class="confidence-label">Confidence: ${analysis.confidence}%</span>
+                    <div class="confidence-progress">
+                        <div class="confidence-fill" style="width: ${analysis.confidence}%"></div>
+                    </div>
+                </div>
+                ${!analysis.isHealthy ? `
+                    <p><strong>Crop Type:</strong> ${analysis.cropType}</p>
+                    <p><strong>Severity:</strong> <span class="severity ${severityColor}">${analysis.severity}</span></p>
+                    <p><strong>Description:</strong> ${analysis.description}</p>
+                ` : `
+                    <p><strong>Crop Type:</strong> ${analysis.cropType}</p>
+                    <p class="healthy-message">Your plant looks healthy! Continue with regular care and monitoring.</p>
+                `}
+            </div>
+
+            ${analysis.allPredictions ? `
+                <div class="all-predictions">
+                    <h5><i class="fas fa-chart-bar"></i> All AI Predictions</h5>
+                    <div class="predictions-list">
+                        ${analysis.allPredictions.slice(0, 3).map((pred, index) => `
+                            <div class="prediction-item ${index === 0 ? 'top-prediction' : ''}">
+                                <span class="prediction-name">${this.formatPredictionName(pred.class)}</span>
+                                <span class="prediction-confidence">${Math.round(pred.confidence)}%</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+
+        // Display treatment recommendations only if disease is detected
+        if (!analysis.isHealthy) {
             treatmentRecommendations.innerHTML = `
                 <h4><i class="fas fa-prescription-bottle-alt"></i> Treatment Recommendations</h4>
-                <ul>
-                    ${mockAnalysis.treatments.map(treatment => `<li>${treatment}</li>`).join('')}
-                </ul>
-                <p><strong>Prevention:</strong> ${mockAnalysis.prevention}</p>
+                <div class="treatment-section">
+                    <h5><i class="fas fa-first-aid"></i> Immediate Actions</h5>
+                    <ul class="treatment-list">
+                        ${analysis.treatments.map(treatment => `<li>${treatment}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="prevention-section">
+                    <h5><i class="fas fa-shield-alt"></i> Prevention</h5>
+                    <p>${analysis.prevention}</p>
+                </div>
+                <div class="expert-advice">
+                    <p><i class="fas fa-info-circle"></i> <strong>Note:</strong> For severe cases, consult with local agricultural experts or extension services.</p>
+                </div>
             `;
-        } catch (error) {
-            diseaseInfo.innerHTML = '<div class="status-error">Error analyzing image. Please try again.</div>';
+        } else {
+            treatmentRecommendations.innerHTML = `
+                <h4><i class="fas fa-thumbs-up"></i> Keep Up the Good Work!</h4>
+                <div class="healthy-tips">
+                    <h5><i class="fas fa-lightbulb"></i> Maintenance Tips</h5>
+                    <ul class="healthy-list">
+                        <li>Continue regular watering schedule</li>
+                        <li>Monitor for early signs of diseases</li>
+                        <li>Maintain proper spacing and ventilation</li>
+                        <li>Apply preventive organic treatments if needed</li>
+                    </ul>
+                </div>
+            `;
+        }
+    }
+
+    formatPredictionName(className) {
+        return className.split('___').map(part =>
+            part.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
+        ).join(' - ');
+    }
+
+    getSeverityColor(severity) {
+        switch (severity?.toLowerCase()) {
+            case 'critical': return 'critical';
+            case 'high': return 'high';
+            case 'moderate': return 'moderate';
+            case 'mild':
+            case 'low': return 'low';
+            default: return 'unknown';
         }
     }
 
